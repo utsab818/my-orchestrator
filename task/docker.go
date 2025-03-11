@@ -42,6 +42,24 @@ type DockerResult struct {
 	Result      string
 }
 
+func NewConfig(t *Task) Config {
+	return Config{
+		Name:          t.Name,
+		Image:         t.Image,
+		Memory:        int64(t.Memory),
+		Disk:          int64(t.Disk),
+		RestartPolicy: t.RestartPolicy,
+	}
+}
+
+func NewDocker(c Config) *Docker {
+	client, _ := client.NewClientWithOpts(client.FromEnv)
+	return &Docker{
+		Client: client,
+		Config: c,
+	}
+}
+
 func (d *Docker) Run() DockerResult {
 	ctx := context.Background()
 	reader, err := d.Client.ImagePull(

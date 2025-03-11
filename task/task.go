@@ -36,6 +36,7 @@ type Task struct {
 	RestartPolicy string
 	StartTime     time.Time
 	FinishTime    time.Time
+	ContainerId   string
 }
 
 type TaskEvent struct {
