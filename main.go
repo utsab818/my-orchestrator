@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/golang-collections/collections/queue"
@@ -11,38 +14,56 @@ import (
 )
 
 func main() {
-	db := make(map[uuid.UUID]*task.Task)
+	host := os.Getenv("WORKER_HOST")
+	port, _ := strconv.Atoi(os.Getenv("WORKER_PORT"))
+
+	fmt.Println("Starting my-orchestrator worker")
 	w := worker.Worker{
 		Queue: queue.New(),
-		Db:    db,
+		Db:    make(map[uuid.UUID]*task.Task),
 	}
 
-	t := task.Task{
-		ID:    uuid.New(),
-		Name:  "test-container-1",
-		State: task.Scheduled,
-		Image: "strm/helloworld-http",
+	api := worker.Api{
+		Address: host,
+		Port:    port,
+		Worker:  &w,
 	}
 
-	// first time the worker will see the task
-	fmt.Println("starting task")
-	w.AddTask(t)
-	result := w.RunTask()
-	if result.Error != nil {
-		panic(result.Error)
-	}
+	go runTasks(&w)
+	api.Start()
+}
 
-	t.ContainerId = result.ContainerId
-
-	fmt.Printf("task %s is running in container %s\n", t.ID, t.ContainerId)
-	fmt.Println("sleepy time")
-	time.Sleep(time.Second * 30)
-
-	fmt.Printf("stopping task %s\n", t.ID)
-	t.State = task.Completed
-	w.AddTask(t)
-	result = w.RunTask()
-	if result.Error != nil {
-		panic(result.Error)
+func runTasks(w *worker.Worker) {
+	for {
+		if w.Queue.Len() != 0 {
+			result := w.RunTask()
+			if result.Error != nil {
+				log.Printf("Error running task: %v\n", result.Error)
+			}
+		} else {
+			log.Printf("No tasks to process currently.\n")
+		}
+		log.Println("Sleeping for 10 seconds")
+		time.Sleep(10 * time.Second)
 	}
 }
+
+// WORKER_HOST=localhost WORKER_PORT=5555 go run main.go
+// curl -v localhost:5555/tasks (in next tab) --> for now provides empty list
+
+// make post request
+// curl -v --request POST \
+// --header "Content-Type: application/json" \
+// --data '{
+//     "ID": "266592cd-960d-4091-981c-8c25c44b1018",
+//     "State": 2,
+//     "Task": {
+//         "State": 1,
+//         "ID": "266592cd-960d-4091-981c-8c25c44b1018",
+//         "Name": "test",
+//         "Image": "strm/helloworld-http"
+//     }
+// }' http://localhost:5555/tasks
+
+// delete
+// curl -v --request DELELTE "localhost:5555/tasks/266592cd-960d-4091-981c-8c25c44b1018"
