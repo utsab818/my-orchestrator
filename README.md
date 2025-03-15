@@ -19,6 +19,11 @@ how does a user tell the system to stop a task? For this purpose, let’s introd
 - Accept requests from users to start and stop tasks
 - Schedule tasks onto worker machines
 - Keep track of tasks, their states, and the machine on which they run
+######################################################################
+- Responding to requests from users
+- Scheduling tasks on workers
+- Periodically collecting information about the state of tasks and workers in the system
+- Checking the health of running tasks and attempting to get them into a healthy state when something goes wrong
 
 5. Scheduler
 - Determine a set of candidate workers on which a task could run
