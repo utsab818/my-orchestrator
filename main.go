@@ -2,10 +2,8 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strconv"
-	"time"
 
 	"github.com/golang-collections/collections/queue"
 	"github.com/google/uuid"
@@ -15,75 +13,47 @@ import (
 )
 
 func main() {
-	host := os.Getenv("WORKER_HOST")
-	port, _ := strconv.Atoi(os.Getenv("WORKER_PORT"))
+	whost := os.Getenv("WORKER_HOST")
+	wport, _ := strconv.Atoi(os.Getenv("WORKER_PORT"))
 
+	mhost := os.Getenv("MANAGER_HOST")
+	mport, _ := strconv.Atoi(os.Getenv("MANAGER_PORT"))
+
+	// start api for worker
 	fmt.Println("Starting my-orchestrator worker")
 	w := worker.Worker{
 		Queue: queue.New(),
 		Db:    make(map[uuid.UUID]*task.Task),
 	}
 
-	api := worker.Api{
-		Address: host,
-		Port:    port,
+	wapi := worker.Api{
+		Address: whost,
+		Port:    wport,
 		Worker:  &w,
 	}
 
-	go runTasks(&w)
+	go w.RunTasks()
 	go w.CollectStats()
-	go api.Start()
+	go wapi.Start()
 
-	workers := []string{fmt.Sprintf("%s:%d", host, port)}
+	// start api for manager
+	fmt.Println("Starting my-orchestrator manager")
+	workers := []string{fmt.Sprintf("%s:%d", whost, wport)}
 	m := manager.New(workers)
-
-	// add two tasks
-	for i := 0; i < 2; i++ {
-		t := task.Task{
-			ID:    uuid.New(),
-			Name:  fmt.Sprintf("test-container-%d", i),
-			State: task.Scheduled,
-			Image: "strm/helloworld-http",
-		}
-		te := task.TaskEvent{
-			ID:    uuid.New(),
-			State: task.Running,
-			Task:  t,
-		}
-		m.AddTask(te)
-		m.SendWork()
+	mapi := manager.Api{
+		Address: mhost,
+		Port:    mport,
+		Manager: m,
 	}
 
-	go func() {
-		for {
-			fmt.Printf("[Manager] Updating tasks from %d workers\n", len(m.Workers))
-			m.UpdateTasks()
-			time.Sleep(15 * time.Second)
-		}
-	}()
+	go m.ProcessTasks()
+	go m.UpdateTasks()
+	mapi.Start()
 
-	for {
-		for _, t := range m.TaskDb {
-			fmt.Printf("[Manager] Task: id: %s, state: %d\n", t.ID, t.State)
-			time.Sleep(15 * time.Second)
-		}
-	}
 }
 
-func runTasks(w *worker.Worker) {
-	for {
-		if w.Queue.Len() != 0 {
-			result := w.RunTask()
-			if result.Error != nil {
-				log.Printf("Error running task: %v\n", result.Error)
-			}
-		} else {
-			log.Printf("No tasks to process currently.\n")
-		}
-		log.Println("Sleeping for 10 seconds")
-		time.Sleep(10 * time.Second)
-	}
-}
-
-// WORKER_HOST=localhost WORKER_PORT=5555 go run main.go
-// curl http://localhost:5555/tasks |jq .
+// WORKER_HOST=localhost WORKER_PORT=5555 MANAGER_HOST=localhost MANAGER_PORT=5556 go run main.go
+// curl -v localhost:5556/tasks
+// curl -v --request POST --header 'Content-Type: application/json' --data @task.json localhost:5556/tasks
+// curl -v localhost:5556/tasks|jq
+// curl -v --request DELETE 'localhost:5556/tasks/21b23589-5d2d-4731-b5c9-a97e9832d021'
