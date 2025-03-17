@@ -94,3 +94,17 @@ https://stackoverflow.com/questions/23367857/accurate-calculation-of-cpu-usage-g
 - Send a task to the manager
 - Get a list of tasks
 - Stop a task
+
+
+### What could possibly go wrong?
+- Enumerating potential failures
+- Exploring options for recovering from failures
+- Implementing task health checks to recover from task crashes
+
+### Implementing health checks
+- An application implements a health check and exposes it on its APIas /health. (The name of the endpoint could be anything, as long
+as it’s well defined and doesn’t change.)
+- When a user submits a task, they define the health check endpoint
+as part of the task configuration.
+- The manager calls a task’s health check periodically and will attempt
+to start a new task for any non-200 response.

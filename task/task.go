@@ -37,6 +37,9 @@ type Task struct {
 	StartTime     time.Time
 	FinishTime    time.Time
 	ContainerId   string
+	HostPorts     nat.PortMap
+	HealthCheck   string
+	RestartCount  int
 }
 
 type TaskEvent struct {
