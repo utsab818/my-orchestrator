@@ -21,26 +21,60 @@ func main() {
 
 	// start api for worker
 	fmt.Println("Starting my-orchestrator worker")
-	w := worker.Worker{
+	w1 := worker.Worker{
 		Queue: queue.New(),
 		Db:    make(map[uuid.UUID]*task.Task),
 	}
 
-	wapi := worker.Api{
+	wapi1 := worker.Api{
 		Address: whost,
 		Port:    wport,
-		Worker:  &w,
+		Worker:  &w1,
 	}
 
-	go w.RunTasks()
-	go w.CollectStats()
-	go w.UpdateTasks()
-	go wapi.Start()
+	w2 := worker.Worker{
+		Queue: queue.New(),
+		Db:    make(map[uuid.UUID]*task.Task),
+	}
+
+	wapi2 := worker.Api{
+		Address: whost,
+		Port:    wport + 1,
+		Worker:  &w2,
+	}
+
+	w3 := worker.Worker{
+		Queue: queue.New(),
+		Db:    make(map[uuid.UUID]*task.Task),
+	}
+
+	wapi3 := worker.Api{
+		Address: whost,
+		Port:    wport + 2,
+		Worker:  &w3,
+	}
+
+	go w1.RunTasks()
+	go w1.UpdateTasks()
+	go wapi1.Start()
+
+	go w2.RunTasks()
+	go w2.UpdateTasks()
+	go wapi2.Start()
+
+	go w3.RunTasks()
+	go w3.UpdateTasks()
+	go wapi3.Start()
 
 	// start api for manager
 	fmt.Println("Starting my-orchestrator manager")
-	workers := []string{fmt.Sprintf("%s:%d", whost, wport)}
-	m := manager.New(workers)
+	workers := []string{
+		fmt.Sprintf("%s:%d", whost, wport),
+		fmt.Sprintf("%s:%d", whost, wport+1),
+		fmt.Sprintf("%s:%d", whost, wport+2),
+	}
+
+	m := manager.New(workers, "roundrobin")
 	mapi := manager.Api{
 		Address: mhost,
 		Port:    mport,
@@ -49,11 +83,10 @@ func main() {
 
 	go m.ProcessTasks()
 	go m.UpdateTasks()
-	go m.DoHealthChecks()
 	mapi.Start()
 
 }
 
-// WORKER_HOST=localhost WORKER_PORT=5555 MANAGER_HOST=localhost MANAGER_PORT=5556 go run main.go
-// curl -v -X POST localhost:5556/tasks -d @task1.json
-// curl http://localhost:5556/tasks|jq
+// WORKER_HOST=localhost WORKER_PORT=5556 MANAGER_HOST=localhost MANAGER_PORT=5555 go run main.go
+// curl -v -X POST localhost:5555/tasks -d @task1.json
+// curl -v --request DELETE 'localhost:5555/tasks/bb1d59ef-9fc1-4e4b-a44d-db571eeed203'

@@ -108,3 +108,10 @@ as it’s well defined and doesn’t change.)
 as part of the task configuration.
 - The manager calls a task’s health check periodically and will attempt
 to start a new task for any non-200 response.
+
+### Scheduler
+
+![alt text](image-2.png)
+
+Sequence diagram showing the interactions between
+the manager, scheduler, and worker
