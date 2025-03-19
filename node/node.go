@@ -1,5 +1,7 @@
 package node
 
+import "github.com/utsab818/my-orchestrator/worker"
+
 type Node struct {
 	Name            string
 	Ip              string
@@ -11,6 +13,7 @@ type Node struct {
 	DiskAllocated   int
 	Role            string
 	TaskCount       int
+	Stats           worker.Stats
 }
 
 func NewNode(name string, api string, role string) *Node {
