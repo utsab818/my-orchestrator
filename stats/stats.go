@@ -1,4 +1,4 @@
-package worker
+package stats
 
 import (
 	"log"
@@ -49,7 +49,7 @@ func (s *Stats) CpuUsage() float64 {
 	nonIdle := s.CpuStats.User + s.CpuStats.Nice + s.CpuStats.System + s.CpuStats.IRQ + s.CpuStats.SoftIRQ + s.CpuStats.Steal
 	total := idle + nonIdle
 
-	if total == 0 {
+	if total == 0 && idle == 0 {
 		return 0.00
 	}
 	return (float64(total) - float64(idle)) / float64(total)
