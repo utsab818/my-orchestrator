@@ -115,3 +115,13 @@ to start a new task for any non-200 response.
 
 Sequence diagram showing the interactions between
 the manager, scheduler, and worker
+
+### Store
+
+
+Put method
+![alt text](image-3.png)
+
+
+Get method
+![alt text](image-4.png)
