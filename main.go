@@ -18,9 +18,13 @@ func main() {
 
 	// start api for worker
 	fmt.Println("Starting my-orchestrator worker")
-	w1 := worker.New("worker-1", "memory")
-	w2 := worker.New("worker-2", "memory")
-	w3 := worker.New("worker-3", "memory")
+	// w1 := worker.New("worker-1", "memory")
+	// w2 := worker.New("worker-2", "memory")
+	// w3 := worker.New("worker-3", "memory")
+
+	w1 := worker.New("worker-1", "persistent")
+	w2 := worker.New("worker-2", "persistent")
+	w3 := worker.New("worker-3", "persistent")
 
 	wapi1 := worker.Api{
 		Address: whost,
@@ -61,7 +65,8 @@ func main() {
 	}
 
 	// m := manager.New(workers, "roundrobin")
-	m := manager.New(workers, "epvm", "memory")
+	// m := manager.New(workers, "epvm", "memory")
+	m := manager.New(workers, "epvm", "persistent")
 
 	mapi := manager.Api{
 		Address: mhost,
