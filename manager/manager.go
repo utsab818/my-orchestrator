@@ -316,8 +316,16 @@ func (m *Manager) GetTasks() []*task.Task {
 
 func (m *Manager) checkTaskHealth(t task.Task) error {
 	log.Printf("Calling health check for task %s: %s\n", t.ID, t.HealthCheck)
-	w := m.TaskWorkerMap[t.ID]
+	w, ok := m.TaskWorkerMap[t.ID]
+	if !ok || w == "" {
+		log.Printf("Error: Task ID %s not found in TaskWorkerMap", t.ID)
+		return fmt.Errorf("task ID %s not found in TaskWorkerMap", t.ID)
+	}
 	hostPort := getHostPort(t.HostPorts)
+	if hostPort == nil {
+		log.Printf("Error: getHostPort returned nil for task %s", t.ID)
+		return fmt.Errorf("invalid host port for task %s", t.ID)
+	}
 	worker := strings.Split(w, ":")
 	url := fmt.Sprintf("http://%s:%s%s", worker[0], *hostPort, t.HealthCheck)
 	log.Printf("Calling health check for task %s: %s\n", t.ID, url)
@@ -348,6 +356,10 @@ func getHostPort(ports nat.PortMap) *string {
 
 func (m *Manager) doHealthChecks() {
 	for _, t := range m.GetTasks() {
+		if t == nil {
+			log.Println("Warning: Encountered nil task in doHealthChecks")
+			continue
+		}
 		if t.State == task.Running && t.RestartCount < 3 {
 			err := m.checkTaskHealth(*t)
 			if err != nil {

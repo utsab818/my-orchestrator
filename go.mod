@@ -14,8 +14,14 @@ require (
 )
 
 require (
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/spf13/cobra v1.9.1 // indirect
+	github.com/spf13/pflag v1.0.6 // indirect
+)
+
+require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/boltdb/bolt v1.3.1 // indirect
+	github.com/boltdb/bolt v1.3.1
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect

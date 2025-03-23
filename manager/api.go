@@ -22,6 +22,9 @@ func (a *Api) initRouter() {
 		r.Route("/{taskID}", func(r chi.Router) {
 			r.Delete("/", a.StopTaskHandler)
 		})
+		a.Router.Route("/nodes", func(r chi.Router) {
+			r.Get("/", a.GetNodesHandler)
+		})
 	})
 }
 
