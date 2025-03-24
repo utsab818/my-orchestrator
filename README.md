@@ -125,3 +125,9 @@ Put method
 
 Get method
 ![alt text](image-4.png)
+
+
+
+# FINAL MODEL
+
+![alt text](image-5.png)
