@@ -1,133 +1,118 @@
-1. Skeleton code -> task, node, manager, worker, scheduler
-2. Start with task -> states(pending, scheduled, running, failed, completed)
-![alt text](image.png)
+# my-orchestrator
 
-an ID to identify individual task.
-Since we will be using docker images for our task, we can define Image, Memory, Disk, ExposedPorts, PortBindings and Restart Policy in Task struct.
-Finally, to know when a task starts and stops, we can add StartTime
-and FinishTime fields to our struct.
-how does a user tell the system to stop a task? For this purpose, let’s introduce the TaskEvent struct.
+## 1. Overview
+This system consists of multiple components that work together to schedule and manage tasks using Docker containers. The core components are:
+- **Task**
+- **Worker**
+- **Manager**
+- **Scheduler**
 
+## 2. Task
+A **Task** goes through the following states:
+- **Pending**
+- **Scheduled**
+- **Running**
+- **Failed**
+- **Completed**
 
-3. Worker 
+![alt text](templates/image.png)
+
+Each task has:
+- A unique **ID**
+- **Docker Image**
+- **Resource specifications**:
+  - Memory
+  - Disk
+  - Exposed Ports
+  - Port Bindings
+  - Restart Policy
+- **Timestamps**:
+  - StartTime
+  - FinishTime
+- **TaskEvent Struct** to handle stop requests from users
+
+## 3. Worker
+Responsibilities:
 - Run tasks as Docker containers
-- Accept tasks to run from a manager
-- Provide relevant statistics to the manager for the purpose of scheduling tasks
-- Keep track of its tasks and their state
+- Accept tasks from the manager
+- Provide statistics for task scheduling
+- Track task states
 
-4. Manager
-- Accept requests from users to start and stop tasks
+![alt text](templates/image-1.png)
+
+## 4. Manager
+Responsibilities:
+- Accept user requests to start and stop tasks
 - Schedule tasks onto worker machines
-- Keep track of tasks, their states, and the machine on which they run
-######################################################################
-- Responding to requests from users
-- Scheduling tasks on workers
-- Periodically collecting information about the state of tasks and workers in the system
-- Checking the health of running tasks and attempting to get them into a healthy state when something goes wrong
+- Maintain records of tasks, their states, and assigned machines
+- Respond to user requests
+- Periodically collect system metrics
+- Monitor task health and recover failed tasks
 
-5. Scheduler
-- Determine a set of candidate workers on which a task could run
-- Score the candidate workers from best to worst
-- Pick the worker with the best score
+## 5. Scheduler
+Responsibilities:
+- Identify candidate workers for task execution
+- Score workers based on resource availability
+- Assign tasks to the best-scoring worker
 
-![alt text](image-1.png)
+![alt text](templates/image-2.png)
 
+## 6. Metrics for Task Scheduling
+The manager considers the following system metrics to schedule tasks:
+- **CPU Usage (%)**
+- **Total Memory**
+- **Available Memory**
+- **Total Disk Space**
+- **Available Disk Space**
 
-6. Metrics to be exposed for manager to schedule the task.
+Metrics are gathered from:
+- `/proc/stat` (process information)
+- `/proc/meminfo` (memory usage)
+- `/proc/loadavg` (system load average)
 
-- CPU usage (as a percentage)
-- Total memory
-- Available memory
-- Total disk space
-- Available disk space
+### CPU Usage Calculation Algorithm
+1. Sum the idle state values.
+2. Sum the non-idle state values.
+3. Compute the total (idle + non-idle).
+4. Compute CPU usage percentage:  
+   `(total - idle) / total * 100`
 
-The files in the /proc filesystem that we’re going to work with are as
-follows:
+## 7. Manager API
+- **Send a task to the manager**
+- **Retrieve a list of tasks**
+- **Stop a task**
 
-- /proc/stat—Contains information about processes running on the system
-- /proc/meminfo—Contains information about memory usage
-- /proc/loadavg—Contains information about the system’s loadaverage
-- These files are the source of data that you see in many Linux commands like ps, stat, and top.
+## 8. Handling Failures
+### Potential Issues:
+- Task failures
+- Worker crashes
+- Resource exhaustion
 
+### Recovery Strategies:
+- Implementing health checks
+- Restarting failed tasks
+- Rebalancing tasks across workers
 
+### Health Checks Implementation:
+1. Applications expose a health check endpoint (e.g., `/health`).
+2. Users define the health check endpoint in task configurations.
+3. The manager periodically calls the health check.
+4. If a non-200 response is received, the manager attempts task recovery.
 
-Since, goprocInfo do not provide us way to calculate CPU percentage but only provides the struct of the states
-where CPU was. We need to calculate it ourself.
+## 9. Storage System
+### Put Method:
+Stores task-related information.
 
-        type CPUStat struct {
-        Id
-        string `json:"id"`
-        User
-        uint64 `json:"user"`
-        Nice
-        uint64 `json:"nice"`
-        System
-        uint64 `json:"system"`
-        Idle
-        uint64 `json:"idle"`
-        IOWait
-        uint64 `json:"iowait"`
-        IRQ
-        uint64 `json:"irq"`
-        SoftIRQ
-        uint64 `json:"softirq"`
-        Steal
-        uint64 `json:"steal"`
-        Guest
-        uint64 `json:"guest"`
-        GuestNice uint64 `json:"guest_nice"`
-        }
+![alt text](templates/image-3.png)
 
-The general algorithm for performing this calculation is
-1. Sum the values for the idle states.
+### Get Method:
+Retrieves task-related information.
 
-2. Sum the values for the non-idle states.
+![alt text](templates/image-4.png)
 
-3. Sum the total of idle and non-idle states.
+## 10. Final Model
+The following diagram illustrates the interaction between all components:
 
-4. Subtract the idle from the total and divide the result by the total.
+![Final Model](templates/image-5.png)
 
-https://stackoverflow.com/questions/23367857/accurate-calculation-of-cpu-usage-given-in-percentage-in-linux
-
-
-### Manager API
-- Send a task to the manager
-- Get a list of tasks
-- Stop a task
-
-
-### What could possibly go wrong?
-- Enumerating potential failures
-- Exploring options for recovering from failures
-- Implementing task health checks to recover from task crashes
-
-### Implementing health checks
-- An application implements a health check and exposes it on its APIas /health. (The name of the endpoint could be anything, as long
-as it’s well defined and doesn’t change.)
-- When a user submits a task, they define the health check endpoint
-as part of the task configuration.
-- The manager calls a task’s health check periodically and will attempt
-to start a new task for any non-200 response.
-
-### Scheduler
-
-![alt text](image-2.png)
-
-Sequence diagram showing the interactions between
-the manager, scheduler, and worker
-
-### Store
-
-
-Put method
-![alt text](image-3.png)
-
-
-Get method
-![alt text](image-4.png)
-
-
-
-# FINAL MODEL
-
-![alt text](image-5.png)
+This document provides a structured approach to implementing a robust task management system with scheduling, monitoring, and recovery mechanisms.
